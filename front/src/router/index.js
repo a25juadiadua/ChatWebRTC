@@ -20,7 +20,7 @@ const router = createRouter({
       component: Users
     },
     {
-      path: '/users/chat',
+      path: '/chat',
       name: 'chat',
       component: Chat,
     }

@@ -1,28 +1,45 @@
 
 <script setup>
-import { onBeforeMount, ref } from 'vue';
+import { onBeforeMount, onMounted, ref } from 'vue';
 import socket from '../socket';
 import { useUsuarioStore } from '../stores/usuario';
+import { useRouter } from 'vue-router';
 
 
+const router = useRouter();
 let listaUsuarios = ref([]); 
 const usuarioStore = useUsuarioStore();
+let nombreUsuario = localStorage.getItem("nombreUsuario");
 
+console.log("Nombre de usuario: " , nombreUsuario);
 
-onBeforeMount(() => {
+//--------------------- FUNCIONES ------------------------------
+
+function invitacionChat(nombreEmisor, nombreReceptor){
+    socket.emit("invitacion:chat:emisor", nombreEmisor, nombreReceptor);
+    
+}
+socket.on("invitacion:chat:receptor", (nombreReceptor) => {
+    alert("Quieres hablar con " +  nombreReceptor + "?");
+})
+onMounted(() => {
+
 
     socket.emit("usuario:lista:enviada");
     
-    console.log("Envio para la lista de usuarios");
+    socket.on("usuario:lista:recibido", (usuarios) => {
+
+    listaUsuarios.value = Object.values(usuarios).filter(
+        element => element.nombre !== nombreUsuario);
+
+});
+
+    
     
 });
 
-socket.on("usuario:lista:recibido", (usuarios) => {
 
-    listaUsuarios.value = usuarios;
 
-    console.log("Lista de usuarios recibida");
-});
 
 </script>
 
@@ -52,7 +69,7 @@ socket.on("usuario:lista:recibido", (usuarios) => {
                     </thead>
 
                     <tbody>
-                        <tr v-for="value in listaUsuarios" :key="value.nombre">
+                        <tr v-for="value in listaUsuarios" :key="value.nombre" @click="invitacionChat(nombreUsuario, value.nombre)">
                             <td>
                                 <div class="user-info">
                                     <div class="user-avatar">

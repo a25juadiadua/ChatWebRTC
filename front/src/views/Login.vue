@@ -25,6 +25,8 @@ socket.on("nombre:ok", () => {
     usuarioStore.conectado = true;
 
     console.log("Nombre comprobado y guardado en pinia");
+    localStorage.setItem("nombreUsuario", nomUsuari.value.trim());
+    localStorage.setItem("estadoUsuario", true);
     router.push('/users');
 });
 

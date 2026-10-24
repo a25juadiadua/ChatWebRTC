@@ -4,7 +4,6 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-let listaPublica = new Map();
 const PORT = 3000;
 
 const usuarios = {};
@@ -32,7 +31,7 @@ io.on('connection', (socket) => {
 
         Object.values(usuarios).forEach(element => {
 
-            if(element.nombre === nombre){
+            if(element.nombre.trim().toLowerCase() === nombre){
                 nombreOcupado= true;
             }
 
@@ -50,16 +49,14 @@ io.on('connection', (socket) => {
                 estado: true
             }
 
-            listaPublica = Object.values(usuarios).map(usuario => ({
-                nombre: usuario.nombre,
-                estado: usuario.estado
-            }));
+            
+            
 
             console.log('Usuario:', usuarios[socket.id])
             socket.emit('nombre:ok');
 
 
-            io.emit("usuario:lista:recibido", (listaPublica));
+            io.emit("usuario:lista:recibido", (usuarios));
     
         }
         nombreOcupado = false;
@@ -67,13 +64,35 @@ io.on('connection', (socket) => {
 
     socket.on("usuario:lista:enviada", () => {
 
-        listaPublica = Object.values(usuarios).map(usuario => ({
-                nombre: usuario.nombre,
-                estado: usuario.estado
-            }));
             
-        socket.emit("usuario:lista:recibido", (listaPublica));
+        socket.emit("usuario:lista:recibido", (usuarios));
     
+    });
+
+
+    socket.on("invitacion:chat:emisor", (nombreEmisor, nombreReceptor) => {
+
+    for (const id in usuarios) {
+
+        if (usuarios[id].nombre === nombreReceptor) {
+
+            io.to(id).emit("invitacion:chat:receptor", nombreEmisor);
+
+        }
+
+    }
+
+});
+
+    socket.on('disconnect', () =>{
+    
+        delete usuarios[socket.id];
+    
+        io.emit("usuario:lista:recibido", (usuarios));
+
+        socket.emit("usuario:reload");
+
+        console.log("Usuario desconectado");
     });
 });
 
