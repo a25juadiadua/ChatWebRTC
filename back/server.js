@@ -84,6 +84,32 @@ io.on('connection', (socket) => {
 
 });
 
+socket.on("invitacion:chat:aceptada", (nombreReceptor) => {
+
+    for (const id in usuarios) {
+
+        if (usuarios[id].nombre === nombreReceptor) {
+
+            io.to(id).emit("invitacion:chat:aceptada");
+            io.to(socket.id).emit("invitacion:chat:aceptada");
+
+        }
+
+    }
+});
+
+socket.on("invitacion:chat:rechazada", (nombreReceptor) => {
+
+    for (const id in usuarios) {
+
+        if (usuarios[id].nombre === nombreReceptor) {
+
+            io.to(id).emit("invitacion:chat:rechazada");
+        }
+
+    }
+});
+
     socket.on('disconnect', () =>{
     
         delete usuarios[socket.id];

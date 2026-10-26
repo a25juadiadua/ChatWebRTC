@@ -1,6 +1,6 @@
 
 <script setup>
-import { onBeforeMount, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import socket from '../socket';
 import { useUsuarioStore } from '../stores/usuario';
 import { useRouter } from 'vue-router';
@@ -19,26 +19,46 @@ function invitacionChat(nombreEmisor, nombreReceptor){
     socket.emit("invitacion:chat:emisor", nombreEmisor, nombreReceptor);
     
 }
-socket.on("invitacion:chat:receptor", (nombreReceptor) => {
-    Swal.fire({
-  title: `<strong>Invitación de ${nombreReceptor}</strong>`,
-  icon: "question",
-  html: `
-        ¿Quieres aceptar su invitación?
-  `,
-  showCloseButton: true,
-  showCancelButton: true,
-  focusConfirm: false,
-  confirmButtonText: `
-    👍 Si!
-  `,
-  confirmButtonAriaLabel: "Thumbs up, great!",
-  cancelButtonText: `
-    👎 No
-  `,
-  cancelButtonAriaLabel: "Thumbs down"
+socket.on("invitacion:chat:receptor", async (nombreReceptor) => {
+
+    const resultado = await Swal.fire({
+    title: "Invitación al chat",
+    text: `¿Quieres aceptar la invitación de ${nombreReceptor}?`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Aceptar",
+    cancelButtonText: "Rechazar"
+
 });
-})
+
+if (resultado.isConfirmed) {
+
+    socket.emit("invitacion:chat:aceptada", nombreReceptor);
+    console.log("Invitación aceptada");
+
+} else {
+
+    socket.emit("invitacion:chat:rechazada",nombreReceptor);
+    console.log("Invitación rechazada");
+
+}
+});
+
+socket.on("invitacion:chat:aceptada", () => {
+    router.push("/chat");
+});
+
+socket.on("invitacion:chat:rechazada", () => {
+
+    Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Te ha rechazado la invitación",
+        });
+
+});
+
+
 onMounted(() => {
 
 
