@@ -4,7 +4,7 @@ import { onBeforeMount, onMounted, ref } from 'vue';
 import socket from '../socket';
 import { useUsuarioStore } from '../stores/usuario';
 import { useRouter } from 'vue-router';
-
+import Swal from 'sweetalert2'
 
 const router = useRouter();
 let listaUsuarios = ref([]); 
@@ -20,7 +20,24 @@ function invitacionChat(nombreEmisor, nombreReceptor){
     
 }
 socket.on("invitacion:chat:receptor", (nombreReceptor) => {
-    alert("Quieres hablar con " +  nombreReceptor + "?");
+    Swal.fire({
+  title: `<strong>Invitación de ${nombreReceptor}</strong>`,
+  icon: "question",
+  html: `
+        ¿Quieres aceptar su invitación?
+  `,
+  showCloseButton: true,
+  showCancelButton: true,
+  focusConfirm: false,
+  confirmButtonText: `
+    👍 Si!
+  `,
+  confirmButtonAriaLabel: "Thumbs up, great!",
+  cancelButtonText: `
+    👎 No
+  `,
+  cancelButtonAriaLabel: "Thumbs down"
+});
 })
 onMounted(() => {
 

@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import socket from '../socket';
 import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2'
 
 import { useUsuarioStore } from '../stores/usuario';
 
@@ -12,7 +13,11 @@ let nomUsuari = ref("");
 
 function comprobarNombre(nombre) {
     if (nombre.trim() === "" || nombre.trim().length < 3) {
-        alert("Pon un nombre, mínimo con 3 caracteres");
+        Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "El nombre ha de tener 3 caracteres minimo",
+        });
     } else {
         socket.emit("nombre:ok", nombre);
         console.log("Nombre enviado");
@@ -31,7 +36,11 @@ socket.on("nombre:ok", () => {
 });
 
 socket.on("nombre:error", (mensaje) => {
-    alert(mensaje);
+    Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: mensaje,
+    });
 });
 </script>
 
