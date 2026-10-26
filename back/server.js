@@ -86,12 +86,14 @@ io.on('connection', (socket) => {
 
 socket.on("invitacion:chat:aceptada", (nombreReceptor) => {
 
+    const nombreEmisor = usuarios[socket.id]?.nombre;
+
     for (const id in usuarios) {
 
         if (usuarios[id].nombre === nombreReceptor) {
 
-            io.to(id).emit("invitacion:chat:aceptada");
-            io.to(socket.id).emit("invitacion:chat:aceptada");
+            io.to(id).emit("invitacion:chat:aceptada", nombreEmisor);
+            io.to(socket.id).emit("invitacion:chat:aceptada", nombreReceptor);
 
         }
 
@@ -104,11 +106,52 @@ socket.on("invitacion:chat:rechazada", (nombreReceptor) => {
 
         if (usuarios[id].nombre === nombreReceptor) {
 
-            io.to(id).emit("invitacion:chat:rechazada");
+            if(usuarios[socket.id]){
+
+                io.to(id).emit("invitacion:chat:rechazada", usuarios[socket.id].nombre);
+            }
         }
 
     }
 });
+
+socket.on("webrtc:oferta", (datos) => {
+
+    for( const id in usuarios){
+
+        if(usuarios[id].nombre === datos.nombreDestino ){
+            io.to(id).emit("webrtc:oferta", {
+                oferta: datos.oferta,
+                nombreEmisor: usuarios[socket.id].nombre            });
+        }
+
+    }
+});
+
+
+socket.on("webrtc:respuesta" , (datos) => {
+
+    for( const id in usuarios){
+
+        if(usuarios[id].nombre === datos.nombreDestino ){
+            io.to(id).emit("webrtc:respuesta", {
+                respuesta: datos.respuesta            });
+        }
+
+    }
+});
+
+
+socket.on("webrtc:candidato", (datos) => {
+    for (const id in usuarios) {
+        if (usuarios[id].nombre === datos.nombreDestino) {
+            io.to(id).emit("webrtc:candidato", {
+                candidato: datos.candidato
+            });
+        }
+    }
+});
+
 
     socket.on('disconnect', () =>{
     

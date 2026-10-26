@@ -11,11 +11,13 @@ let listaUsuarios = ref([]);
 const usuarioStore = useUsuarioStore();
 let nombreUsuario = localStorage.getItem("nombreUsuario");
 
+
 console.log("Nombre de usuario: " , nombreUsuario);
 
 //--------------------- FUNCIONES ------------------------------
 
 function invitacionChat(nombreEmisor, nombreReceptor){
+    localStorage.setItem('rolChat', 'emisor');
     socket.emit("invitacion:chat:emisor", nombreEmisor, nombreReceptor);
     
 }
@@ -33,27 +35,31 @@ socket.on("invitacion:chat:receptor", async (nombreReceptor) => {
 
 if (resultado.isConfirmed) {
 
+    localStorage.setItem('rolChat', 'receptor');
     socket.emit("invitacion:chat:aceptada", nombreReceptor);
+
     console.log("Invitación aceptada");
 
 } else {
 
     socket.emit("invitacion:chat:rechazada",nombreReceptor);
+    localStorage.removeItem("rolChat");
     console.log("Invitación rechazada");
 
 }
 });
 
-socket.on("invitacion:chat:aceptada", () => {
+socket.on("invitacion:chat:aceptada", (nombreOtroUsuario) => {
+    localStorage.setItem("nombreOtroUsuario", nombreOtroUsuario);
     router.push("/chat");
 });
 
-socket.on("invitacion:chat:rechazada", () => {
+socket.on("invitacion:chat:rechazada", (nombreEmisor) => {
 
     Swal.fire({
             icon: "error",
             title: "Oops...",
-            text: "Te ha rechazado la invitación",
+            text: `${nombreEmisor} te ha rechazado la invitación`,
         });
 
 });
