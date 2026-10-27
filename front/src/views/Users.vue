@@ -1,6 +1,6 @@
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount,onMounted, ref } from 'vue';
 import socket from '../socket';
 import { useUsuarioStore } from '../stores/usuario';
 import { useRouter } from 'vue-router';
@@ -22,15 +22,26 @@ function invitacionChat(nombreEmisor, nombreReceptor) {
 
     socket.emit("invitacion:chat:emisor", nombreEmisor, nombreReceptor);
 }
-socket.on("invitacion:chat:receptor", async (nombreEmisor) => {
 
-    const resultado = await Swal.fire({
-    title: "Invitación al chat",
-    text: `¿Quieres aceptar la invitación de ${nombreEmisor}?`,
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "Aceptar",
-    cancelButtonText: "Rechazar"
+
+onBeforeUnmount(() => {
+    socket.off("invitacion:chat:receptor");
+    socket.off("invitacion:chat:aceptada");
+    socket.off("invitacion:chat:rechazada");
+    socket.off("usuario:lista:recibido");
+});
+
+
+onMounted(() => {
+    socket.on("invitacion:chat:receptor", async (nombreEmisor) => {
+        
+        const resultado = await Swal.fire({
+            title: "Invitación al chat",
+            text: `¿Quieres aceptar la invitación de ${nombreEmisor}?`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Aceptar",
+            cancelButtonText: "Rechazar"
 
 });
 
@@ -67,11 +78,8 @@ socket.on("invitacion:chat:rechazada", (nombreEmisor) => {
 });
 
 
-onMounted(() => {
+socket.emit("usuario:lista:enviada");
 
-
-    socket.emit("usuario:lista:enviada");
-    
     socket.on("usuario:lista:recibido", (usuarios) => {
 
     listaUsuarios.value = Object.values(usuarios).filter(

@@ -22,6 +22,7 @@ console.log("Nombre del otro usuario:", nombreOtroUsuario);
 
 
 function crearPeer(initiator) {
+    conectado.value = false;
     peer = new Peer({ initiator, trickle: false });
 
     // Se dispara con la oferta (emisor) o con la respuesta (receptor)
@@ -33,32 +34,44 @@ function crearPeer(initiator) {
     });
 
     peer.on('connect', () => {
+        conectado.value = true;
         console.log('Conexión P2P establecida');
+    });
+
+    peer.on('data', (datos) => {
+        const recibido = JSON.parse(datos.toString());
+
+        mensajes.value.push(recibido);
     });
 
     peer.on('error', (err) => {
         console.error('Error en el peer:', err);
     });
-}
 
-// Recibir mensajes del chat
-function recibirMensaje(texto, nombreEmisor, hora, minutos) {
-    mensajes.value.push({
-        texto,
-        nombre: nombreEmisor,
-        hora: `${hora}:${String(minutos).padStart(2, '0')}`
-    });
+    peer.on('close', () => {
+        conectado.value = false;
+        console.log("Desconexion P2P hecha");
+    })
 }
 
 // Enviar mensaje
 function enviarMensaje() {
-    if (mensaje.value.trim() === '') {
+    if (mensaje.value.trim() === '' || !peer || !peer.connected) {
         return;
     }
 
-    // En el siguiente paso conectaremos aquí
-    // el envío real del mensaje.
+    const nuevoMensaje = {
+        texto: mensaje.value.trim(),
+        nombre: nombreUsuario,
+        hora: new Date().toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    };
 
+
+    peer.send(JSON.stringify(nuevoMensaje));
+    mensajes.value.push(nuevoMensaje);
     mensaje.value = '';
 }
 
@@ -73,7 +86,6 @@ function alDesconectar() {
 onMounted(() => {
     socket.on('connect', alConectar);
     socket.on('disconnect', alDesconectar);
-    socket.on('chat:message', recibirMensaje);
 
     socket.on('webrtc:signal', (datos) => {
     peer.signal(datos.signal);
@@ -91,7 +103,6 @@ if (rolChat === 'emisor') {
 onBeforeUnmount(() => {
     socket.off('connect', alConectar);
     socket.off('disconnect', alDesconectar);
-    socket.off('chat:message', recibirMensaje);
     socket.off('webrtc:signal');
 socket.off('webrtc:listo');
 if (peer) peer.destroy();

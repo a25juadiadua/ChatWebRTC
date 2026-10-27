@@ -4,13 +4,13 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const PORT = 3000;
+const PORT = 30050;
 
 const usuarios = {};
 
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5173'
+        origin: 'http://a25juadiadua.daw.inspedralbes.cat'
     }
 });
 
