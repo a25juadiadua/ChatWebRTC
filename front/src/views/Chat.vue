@@ -3,9 +3,8 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import socket from '../socket';
 import { useRouter } from 'vue-router';
+import Peer from 'simple-peer/simplepeer.min.js';
 
-let conexion = null;
-let canal = null;
 const rolChat = localStorage.getItem('rolChat');
 const router = useRouter();
 
@@ -15,50 +14,32 @@ const nombreOtroUsuario = localStorage.getItem('nombreOtroUsuario');
 const mensaje = ref('');
 const mensajes = ref([]);
 const conectado = ref(socket.connected);
+let peer =null;
+
+console.log("Rol del chat:", rolChat);
+console.log("Mi nombre:", nombreUsuario);
+console.log("Nombre del otro usuario:", nombreOtroUsuario);
 
 
+function crearPeer(initiator) {
+    peer = new Peer({ initiator, trickle: false });
 
-function crearConexion() {
-    conexion = new RTCPeerConnection();
-
-    conexion.onicecandidate = (evento) => {
-    if (evento.candidate) {
-        socket.emit("webrtc:candidato", {
-            candidato: evento.candidate,
+    // Se dispara con la oferta (emisor) o con la respuesta (receptor)
+    peer.on('signal', (data) => {
+        socket.emit('webrtc:signal', {
+            signal: data,
             nombreDestino: nombreOtroUsuario
         });
-    }
-};
+    });
 
-    if(rolChat === "emisor"){
-        canal = conexion.createDataChannel("chat");
-        prepararCanal();
-    }else{
+    peer.on('connect', () => {
+        console.log('Conexión P2P establecida');
+    });
 
-        conexion.ondatachannel = (evento) =>  {
-            canal = evento.channel;
-            prepararCanal();
-            
-        }
-
-    }
-
-
-    
-    console.log("Conexión WebRTC creada");
+    peer.on('error', (err) => {
+        console.error('Error en el peer:', err);
+    });
 }
-
-function prepararCanal(){
-    canal.onopen = () =>{
-        console.log("Canal abierto");
-    }
-
-    canal.onclose = () =>{
-        console.log("Canal cerrado");
-    }
-}
-
-
 
 // Recibir mensajes del chat
 function recibirMensaje(texto, nombreEmisor, hora, minutos) {
@@ -77,7 +58,7 @@ function enviarMensaje() {
 
     // En el siguiente paso conectaremos aquí
     // el envío real del mensaje.
-    
+
     mensaje.value = '';
 }
 
@@ -90,69 +71,30 @@ function alDesconectar() {
 }
 
 onMounted(() => {
-    
-    crearConexion();
-    
     socket.on('connect', alConectar);
     socket.on('disconnect', alDesconectar);
     socket.on('chat:message', recibirMensaje);
-    
-    
-    async function crearOferta() {
-        const oferta = await conexion.createOffer();
-        
-        await conexion.setLocalDescription(oferta);
-        
-        socket.emit('webrtc:oferta', {
-            oferta,
-            nombreDestino: nombreOtroUsuario
-        });
-    }  
-    
-    if(rolChat === "receptor"){
-        socket.on("webrtc:oferta", async (datos) => {
-            
-            await conexion.setRemoteDescription(datos.oferta);
-            
-            const respuesta = await conexion.createAnswer();
-            
-            await conexion.setLocalDescription(respuesta);
-    
-            socket.emit("webrtc:respuesta", {
-                respuesta,
-                nombreDestino: datos.nombreEmisor
-            });
-    
-        });
-    }else{
-        socket.on("webrtc:respuesta", async (datos) => {
-            await conexion.setRemoteDescription(datos.respuesta);
-        });
-    }
 
-    socket.on("webrtc:candidato", async (datos) => {
-    try {
-        await conexion.addIceCandidate(datos.candidato);
-    } catch (error) {
-        console.error("Error al añadir candidato ICE:", error);
-    }
-});
+    socket.on('webrtc:signal', (datos) => {
+    peer.signal(datos.signal);
+    });
 
-
-    if(rolChat === "emisor"){
-        crearOferta();
-    }
+if (rolChat === 'emisor') {
+    socket.on('webrtc:listo', () => crearPeer(true));
+} else {
+    crearPeer(false);
+    socket.emit('webrtc:listo', { nombreDestino: nombreOtroUsuario });
+}
+    
 });
 
 onBeforeUnmount(() => {
     socket.off('connect', alConectar);
     socket.off('disconnect', alDesconectar);
     socket.off('chat:message', recibirMensaje);
-    socket.off("webrtc:oferta");
-    socket.off("webrtc:respuesta");
-    socket.off("webrtc:candidato");
-
-
+    socket.off('webrtc:signal');
+socket.off('webrtc:listo');
+if (peer) peer.destroy();
 });
 </script>
 

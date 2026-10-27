@@ -14,11 +14,6 @@ const io = new Server(server, {
     }
 });
 
-
-
-
-
-
 io.on('connection', (socket) => {
 
     socket.on("nombre:ok", (nombre) => {
@@ -31,132 +26,102 @@ io.on('connection', (socket) => {
 
         Object.values(usuarios).forEach(element => {
 
-            if(element.nombre.trim().toLowerCase() === nombre){
-                nombreOcupado= true;
+            if (element.nombre.trim().toLowerCase() === nombre) {
+                nombreOcupado = true;
             }
 
         });
 
-        if(nombre.length < 3){
+        if (nombre.length < 3) {
             console.log("Ha caido en el error 1");
             socket.emit("nombre:error", 'El nombre ha de tener minimo 3 caracteres');
-        }else if(nombreOcupado){
+        } else if (nombreOcupado) {
             console.log("Ha caido en el error 2");
             socket.emit("nombre:error", 'El nombre de usuario se esta usando ahora mismo');
-        }else{
+        } else {
             usuarios[socket.id] = {
                 nombre: nombreOriginal,
                 estado: true
             }
 
-            
-            
-
             console.log('Usuario:', usuarios[socket.id])
             socket.emit('nombre:ok');
 
-
             io.emit("usuario:lista:recibido", (usuarios));
-    
         }
         nombreOcupado = false;
     });
 
     socket.on("usuario:lista:enviada", () => {
 
-            
         socket.emit("usuario:lista:recibido", (usuarios));
-    
     });
-
 
     socket.on("invitacion:chat:emisor", (nombreEmisor, nombreReceptor) => {
 
-    for (const id in usuarios) {
+        for (const id in usuarios) {
 
-        if (usuarios[id].nombre === nombreReceptor) {
+            if (usuarios[id].nombre === nombreReceptor) {
 
-            io.to(id).emit("invitacion:chat:receptor", nombreEmisor);
+                io.to(id).emit("invitacion:chat:receptor", nombreEmisor);
 
-        }
-
-    }
-
-});
-
-socket.on("invitacion:chat:aceptada", (nombreReceptor) => {
-
-    const nombreEmisor = usuarios[socket.id]?.nombre;
-
-    for (const id in usuarios) {
-
-        if (usuarios[id].nombre === nombreReceptor) {
-
-            io.to(id).emit("invitacion:chat:aceptada", nombreEmisor);
-            io.to(socket.id).emit("invitacion:chat:aceptada", nombreReceptor);
-
-        }
-
-    }
-});
-
-socket.on("invitacion:chat:rechazada", (nombreReceptor) => {
-
-    for (const id in usuarios) {
-
-        if (usuarios[id].nombre === nombreReceptor) {
-
-            if(usuarios[socket.id]){
-
-                io.to(id).emit("invitacion:chat:rechazada", usuarios[socket.id].nombre);
             }
+
         }
 
-    }
-});
+    });
 
-socket.on("webrtc:oferta", (datos) => {
+    socket.on("invitacion:chat:aceptada", (nombreReceptor) => {
 
-    for( const id in usuarios){
+        const nombreEmisor = usuarios[socket.id]?.nombre;
 
-        if(usuarios[id].nombre === datos.nombreDestino ){
-            io.to(id).emit("webrtc:oferta", {
-                oferta: datos.oferta,
-                nombreEmisor: usuarios[socket.id].nombre            });
+        for (const id in usuarios) {
+
+            if (usuarios[id].nombre === nombreReceptor) {
+
+                io.to(id).emit("invitacion:chat:aceptada", nombreEmisor);
+                io.to(socket.id).emit("invitacion:chat:aceptada", nombreReceptor);
+
+            }
+
         }
+    });
 
-    }
-});
+    socket.on("invitacion:chat:rechazada", (nombreReceptor) => {
 
+        for (const id in usuarios) {
 
-socket.on("webrtc:respuesta" , (datos) => {
+            if (usuarios[id].nombre === nombreReceptor) {
 
-    for( const id in usuarios){
+                if (usuarios[socket.id]) {
 
-        if(usuarios[id].nombre === datos.nombreDestino ){
-            io.to(id).emit("webrtc:respuesta", {
-                respuesta: datos.respuesta            });
+                    io.to(id).emit("invitacion:chat:rechazada", usuarios[socket.id].nombre);
+                }
+            }
+
         }
+    });
 
-    }
-});
-
-
-socket.on("webrtc:candidato", (datos) => {
+    socket.on("webrtc:signal", (datos) => {
     for (const id in usuarios) {
         if (usuarios[id].nombre === datos.nombreDestino) {
-            io.to(id).emit("webrtc:candidato", {
-                candidato: datos.candidato
-            });
+            io.to(id).emit("webrtc:signal", { signal: datos.signal });
+        }
+    }
+});
+
+socket.on("webrtc:listo", (datos) => {
+    for (const id in usuarios) {
+        if (usuarios[id].nombre === datos.nombreDestino) {
+            io.to(id).emit("webrtc:listo");
         }
     }
 });
 
 
-    socket.on('disconnect', () =>{
-    
+
+    socket.on('disconnect', () => {
         delete usuarios[socket.id];
-    
         io.emit("usuario:lista:recibido", (usuarios));
 
         socket.emit("usuario:reload");
@@ -164,7 +129,6 @@ socket.on("webrtc:candidato", (datos) => {
         console.log("Usuario desconectado");
     });
 });
-
 
 server.listen(PORT, () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);

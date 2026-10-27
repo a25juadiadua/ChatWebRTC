@@ -16,16 +16,17 @@ console.log("Nombre de usuario: " , nombreUsuario);
 
 //--------------------- FUNCIONES ------------------------------
 
-function invitacionChat(nombreEmisor, nombreReceptor){
+function invitacionChat(nombreEmisor, nombreReceptor) {
     localStorage.setItem('rolChat', 'emisor');
+    localStorage.setItem('nombreOtroUsuario', nombreReceptor);
+
     socket.emit("invitacion:chat:emisor", nombreEmisor, nombreReceptor);
-    
 }
-socket.on("invitacion:chat:receptor", async (nombreReceptor) => {
+socket.on("invitacion:chat:receptor", async (nombreEmisor) => {
 
     const resultado = await Swal.fire({
     title: "Invitación al chat",
-    text: `¿Quieres aceptar la invitación de ${nombreReceptor}?`,
+    text: `¿Quieres aceptar la invitación de ${nombreEmisor}?`,
     icon: "question",
     showCancelButton: true,
     confirmButtonText: "Aceptar",
@@ -36,13 +37,14 @@ socket.on("invitacion:chat:receptor", async (nombreReceptor) => {
 if (resultado.isConfirmed) {
 
     localStorage.setItem('rolChat', 'receptor');
-    socket.emit("invitacion:chat:aceptada", nombreReceptor);
+    localStorage.setItem('nombreOtroUsuario', nombreEmisor);
+    socket.emit("invitacion:chat:aceptada", nombreEmisor);
 
     console.log("Invitación aceptada");
 
 } else {
 
-    socket.emit("invitacion:chat:rechazada",nombreReceptor);
+    socket.emit("invitacion:chat:rechazada", nombreEmisor);
     localStorage.removeItem("rolChat");
     console.log("Invitación rechazada");
 
