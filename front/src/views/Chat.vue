@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import socket from '../socket';
 import { useRouter } from 'vue-router';
 import Peer from 'simple-peer/simplepeer.min.js';
@@ -10,11 +10,13 @@ const router = useRouter();
 
 const nombreUsuario = localStorage.getItem('nombreUsuario');
 const nombreOtroUsuario = localStorage.getItem('nombreOtroUsuario');
-
+const videoRemoto = ref(null);
 const mensaje = ref('');
 const mensajes = ref([]);
 const conectado = ref(socket.connected);
+const mostarCapturaVideo = ref(false);
 let peer =null;
+let capPantalla = null;
 
 console.log("Rol del chat:", rolChat);
 console.log("Mi nombre:", nombreUsuario);
@@ -52,6 +54,14 @@ function crearPeer(initiator) {
         conectado.value = false;
         console.log("Desconexion P2P hecha");
     })
+
+    peer.on('stream', async (stream) => {
+        mostarCapturaVideo.value = true;
+        
+        await nextTick();
+        
+        videoRemoto.value.srcObject = stream;
+    });
 }
 
 // Enviar mensaje
@@ -82,6 +92,30 @@ function alConectar() {
 function alDesconectar() {
     conectado.value = false;
 }
+
+
+async function iniciarCapturaPantalla(){
+    try {
+        capPantalla = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: false
+        });
+
+        if (peer && peer.connected) {
+            peer.addStream(capPantalla);
+        }
+
+    } catch (error) {
+        console.log("El usuario ha cancelado la compartición:", error);
+    }
+}
+
+function detenerCapturaPantalla(){
+    capPantalla.getTracks().forEach(track => track.stop());
+    peer.removeStream(capPantalla);
+    capPantalla = null;
+}
+
 
 onMounted(() => {
     socket.on('connect', alConectar);
@@ -122,8 +156,18 @@ if (peer) peer.destroy();
                         {{ conectado ? 'Conectado' : 'Desconectado' }}
                     </span>
                 </div>
+
+                <button v-if="mostarCapturaVideo === false" @click="iniciarCapturaPantalla()">Compartit Pantalla</button>
+                <button @click="detenerCapturaPantalla()">Detener Captura</button>
             </div>
 
+            <div class="card-body" v-if="mostarCapturaVideo">
+    <video
+        ref="videoRemoto"
+        autoplay
+        style="width: 100%;"
+    ></video>
+</div>
             <div class="card-body chat-mensajes">
                 <div
                     v-for="(item, index) in mensajes"
