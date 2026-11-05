@@ -135,6 +135,14 @@ function detenerCapturaPantalla() {
     compartoYo.value = false;
 }
 
+function volverUsers(){
+
+    socket.emit("cambio:estado:true", {
+        nombreEmisor: nombreUsuario,
+        nombreReceptor: nombreOtroUsuario}
+    );
+}
+
 
 onMounted(() => {
     socket.on('connect', alConectar);
@@ -325,7 +333,7 @@ onBeforeUnmount(() => {
 
                 <button
                     class="btn btn-outline-secondary btn-sm"
-                    @click="router.push('/users')"
+                    @click="router.push('/users'), volverUsers()"
                 >
                     ← Volver a usuarios
                 </button>

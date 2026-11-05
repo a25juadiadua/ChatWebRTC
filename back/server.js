@@ -162,6 +162,21 @@ socket.on("webrtc:listo", (datos) => {
         io.emit("cambiar:estado", usuarios);
 
     });
+
+    socket.on("cambio:estado:true", (datos) => {
+
+        for (const id in usuarios) {
+            
+            if (usuarios[id].nombre === datos.nombreEmisor ||
+                usuarios[id].nombre === datos.nombreReceptor){
+
+                usuarios[id].estado = true;
+            }
+        }
+
+        io.emit("cambiar:estado", usuarios);
+
+    });
 });
 
 server.listen(PORT, () => {
