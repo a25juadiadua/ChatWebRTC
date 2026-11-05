@@ -128,6 +128,40 @@ socket.on("webrtc:listo", (datos) => {
 
         console.log("Usuario desconectado");
     });
+
+    socket.on("webrtc:detener-pantalla", (datos) => {
+
+        for (const id in usuarios) {
+            if (usuarios[id].nombre === datos.nombreDestino) {
+                io.to(id).emit("webrtc:detener-pantalla");
+            }
+    }
+    });
+
+
+    socket.on("webrtc:boton:oculto", (datos) => {
+
+        for (const id in usuarios) {
+            if (usuarios[id].nombre === datos.nombreDestino) {
+                io.to(id).emit("webrtc:boton:oculto");
+            }
+        }
+    });
+
+    socket.on("cambiar:estado", (datos) => {
+
+        for (const id in usuarios) {
+            if (usuarios[id].nombre === datos.nombreEmisor ||
+                usuarios[id].nombre === datos.nombreReceptor) {
+
+                usuarios[id].estado = false;
+                
+            }
+        }
+
+        io.emit("cambiar:estado", usuarios);
+
+    });
 });
 
 server.listen(PORT, () => {

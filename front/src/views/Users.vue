@@ -64,6 +64,12 @@ if (resultado.isConfirmed) {
 
 socket.on("invitacion:chat:aceptada", (nombreOtroUsuario) => {
     localStorage.setItem("nombreOtroUsuario", nombreOtroUsuario);
+
+    socket.emit("cambiar:estado", {
+        nombreEmisor: nombreUsuario,
+        nombreReceptor: nombreOtroUsuario
+    });
+
     router.push("/chat");
 });
 
@@ -85,11 +91,18 @@ socket.emit("usuario:lista:enviada");
     listaUsuarios.value = Object.values(usuarios).filter(
         element => element.nombre !== nombreUsuario);
 
+    });
 });
 
-    
-    
+socket.on("cambiar:estado", (usuarios) =>{
+
+    listaUsuarios.value = Object.values(usuarios).filter(
+        element => element.nombre !== nombreUsuario);
+
 });
+    
+
+
 
 
 
