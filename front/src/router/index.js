@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Chat from '../views/Chat.vue'
 import Login from '../views/Login.vue'
 import Users from '../views/Users.vue'
+import CryptoView from '@/views/CryptoView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,6 +24,11 @@ const router = createRouter({
       path: '/chat',
       name: 'chat',
       component: Chat,
+    },
+    {
+      path: '/crypto',
+      name: 'crypto',
+      component: CryptoView,
     }
   ],
 })
