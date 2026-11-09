@@ -2,11 +2,14 @@
 import { ref } from 'vue';
 import socket from '../socket';
 import { useRouter } from 'vue-router';
-import Swal from 'sweetalert2'
+import Swal from 'sweetalert2';
+import { generarClaves } from '../manager/crypto';
 
 import { useUsuarioStore } from '../stores/usuario';
 
 const usuarioStore = useUsuarioStore();
+const comprobar = ref(false);
+
 
 const router = useRouter();
 let nomUsuari = ref("");
@@ -19,6 +22,7 @@ function comprobarNombre(nombre) {
             text: "El nombre ha de tener 3 caracteres minimo",
         });
     } else {
+        comprobar.value = true;
         socket.emit("nombre:ok", nombre);
         console.log("Nombre enviado");
     }
@@ -32,6 +36,20 @@ socket.on("nombre:ok", () => {
     console.log("Nombre comprobado y guardado en pinia");
     localStorage.setItem("nombreUsuario", nomUsuari.value.trim());
     localStorage.setItem("estadoUsuario", true);
+    const claves = generarClaves();
+
+    usuarioStore.clavePrivada = claves.clavePrivada;
+    usuarioStore.clavePublica = claves.clavePublica;
+    
+    console.log(usuarioStore.clavePublica);
+    console.log(usuarioStore.clavePrivada);
+    socket.emit("clave:publica:enviar", claves.clavePublica);
+
+});
+
+socket.on("clave:publica:ok", () => {
+    
+
     router.push('/users');
 });
 
@@ -69,8 +87,8 @@ socket.on("nombre:error", (mensaje) => {
                     autocomplete="off"
                 >
 
-                <button type="submit" class="btn btn-login w-100 mt-4">
-                    ✈ Entrar
+                <button type="submit" class="btn btn-login w-100 mt-4" :disabled="comprobar">
+                    {{comprobar ? 'Generando claves...' : '✈ Entrar' }}
                 </button>
             </form>
 

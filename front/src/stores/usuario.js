@@ -5,6 +5,9 @@ export const useUsuarioStore = defineStore('usuario', {
     state: () => ({
         nombre: '',
         estado: false,
-        conectado: false
+        conectado: false,
+        clavePublica: null,
+        clavePrivada: null,
+        clavePublicaOtroUsuario: null
     })
 });

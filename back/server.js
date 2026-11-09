@@ -41,15 +41,28 @@ io.on('connection', (socket) => {
         } else {
             usuarios[socket.id] = {
                 nombre: nombreOriginal,
-                estado: true
+                estado: true,
+                clavePublica: null
             }
 
-            console.log('Usuario:', usuarios[socket.id])
+        console.log('Usuario:', usuarios[socket.id])
             socket.emit('nombre:ok');
 
             io.emit("usuario:lista:recibido", (usuarios));
         }
         nombreOcupado = false;
+    });
+
+    socket.on("clave:publica:enviar", (clavePublica) => {
+
+        if(!usuarios[socket.id]) return;
+
+        usuarios[socket.id].clavePublica=  clavePublica;
+
+        console.log("Clave pública recibida:", usuarios[socket.id]);
+        socket.emit("clave:publica:ok");
+
+        io.emit("usuario:lista:recibido", usuarios);
     });
 
     socket.on("usuario:lista:enviada", () => {
@@ -63,8 +76,10 @@ io.on('connection', (socket) => {
 
             if (usuarios[id].nombre === nombreReceptor) {
 
-                io.to(id).emit("invitacion:chat:receptor", nombreEmisor);
-
+                io.to(id).emit("invitacion:chat:receptor", {
+                    nombreEmisor,
+                    clavePublicaEmisor: usuarios[socket.id].clavePublica
+                });
             }
 
         }

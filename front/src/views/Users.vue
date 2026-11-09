@@ -16,9 +16,10 @@ console.log("Nombre de usuario: " , nombreUsuario);
 
 //--------------------- FUNCIONES ------------------------------
 
-function invitacionChat(nombreEmisor, nombreReceptor) {
+function invitacionChat(nombreEmisor, nombreReceptor, clavePublica) {
     localStorage.setItem('rolChat', 'emisor');
     localStorage.setItem('nombreOtroUsuario', nombreReceptor);
+    usuarioStore.clavePublicaOtroUsuario = clavePublica;
 
     socket.emit("invitacion:chat:emisor", nombreEmisor, nombreReceptor);
 }
@@ -33,11 +34,11 @@ onBeforeUnmount(() => {
 
 
 onMounted(() => {
-    socket.on("invitacion:chat:receptor", async (nombreEmisor) => {
+    socket.on("invitacion:chat:receptor", async (datos) => {
         
         const resultado = await Swal.fire({
             title: "Invitación al chat",
-            text: `¿Quieres aceptar la invitación de ${nombreEmisor}?`,
+            text: `¿Quieres aceptar la invitación de ${datos.nombreEmisor}?`,
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "Aceptar",
@@ -46,16 +47,18 @@ onMounted(() => {
 });
 
 if (resultado.isConfirmed) {
+    usuarioStore.clavePublicaOtroUsuario = datos.clavePublicaEmisor;
 
     localStorage.setItem('rolChat', 'receptor');
-    localStorage.setItem('nombreOtroUsuario', nombreEmisor);
-    socket.emit("invitacion:chat:aceptada", nombreEmisor);
+    localStorage.setItem('nombreOtroUsuario', datos.nombreEmisor);
+    
+    socket.emit("invitacion:chat:aceptada", datos.nombreEmisor);
 
     console.log("Invitación aceptada");
 
 } else {
 
-    socket.emit("invitacion:chat:rechazada", nombreEmisor);
+    socket.emit("invitacion:chat:rechazada", datos.nombreEmisor);
     localStorage.removeItem("rolChat");
     console.log("Invitación rechazada");
 
@@ -92,6 +95,7 @@ socket.emit("usuario:lista:enviada");
         element => element.nombre !== nombreUsuario);
 
     });
+
 });
 
 socket.on("cambiar:estado", (usuarios) =>{
@@ -135,7 +139,7 @@ socket.on("cambiar:estado", (usuarios) =>{
                     </thead>
 
                     <tbody>
-                        <tr v-for="value in listaUsuarios" :key="value.nombre" @click="invitacionChat(nombreUsuario, value.nombre)">
+                        <tr v-for="value in listaUsuarios" :key="value.nombre" @click="invitacionChat(nombreUsuario, value.nombre, value.clavePublica)">
                             <td>
                                 <div class="user-info">
                                     <div class="user-avatar">
