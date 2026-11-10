@@ -3,6 +3,8 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import socket from '../socket';
 import { useRouter } from 'vue-router';
 import Peer from 'simple-peer/simplepeer.min.js';
+import { useUsuarioStore } from '../stores/usuario';
+import { cifrarMensaje, descifrarMensaje } from '../manager/crypto';
 
 const rolChat = localStorage.getItem('rolChat');
 const router = useRouter();
@@ -16,6 +18,7 @@ const conectado = ref(socket.connected);
 const mostarCapturaVideo = ref(false);
 const compartiendoPantalla = ref(false);
 const compartoYo = ref(false);
+const usuarioStore = useUsuarioStore();
 let peer = null;
 let capPantalla = null;
 
@@ -42,6 +45,19 @@ function crearPeer(initiator) {
 
     peer.on('data', (datos) => {
         const recibido = JSON.parse(datos.toString());
+
+        const mensajeDescifrado = descifrarMensaje(
+            recibido.texto,
+            usuarioStore.clavePrivada
+        );
+
+        if(!mensajeDescifrado){
+            console.error("No se ha podido descrifrar el mensaje");
+            return;
+        }
+
+        recibido.texto = mensajeDescifrado;
+
         mensajes.value.push(recibido);
     });
 
@@ -77,7 +93,23 @@ function enviarMensaje() {
         })
     };
 
-    peer.send(JSON.stringify(nuevoMensaje));
+    const textoCifrado = cifrarMensaje(
+        nuevoMensaje.texto,
+        usuarioStore.clavePublicaOtroUsuario
+    );
+
+    if(!textoCifrado){
+        console.error("Nose ha podido cifrar el mensaje");
+        return;
+    }
+    
+    const mensajeEnviar = {
+        texto: textoCifrado,
+        nombre: nuevoMensaje.nombre,
+        hora: nuevoMensaje.hora
+    };
+
+    peer.send(JSON.stringify(mensajeEnviar));
     mensajes.value.push(nuevoMensaje);
     mensaje.value = '';
 }
