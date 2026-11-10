@@ -4,7 +4,7 @@ import socket from '../socket';
 import { useRouter } from 'vue-router';
 import Peer from 'simple-peer/simplepeer.min.js';
 import { useUsuarioStore } from '../stores/usuario';
-import { cifrarMensaje, descifrarMensaje } from '../manager/crypto';
+import { cifrarMensaje, descifrarMensaje, firmarMensaje, verificarFirma } from '../manager/crypto';
 
 const rolChat = localStorage.getItem('rolChat');
 const router = useRouter();
@@ -44,22 +44,35 @@ function crearPeer(initiator) {
     });
 
     peer.on('data', (datos) => {
-        const recibido = JSON.parse(datos.toString());
+    const recibido = JSON.parse(datos.toString());
 
-        const mensajeDescifrado = descifrarMensaje(
-            recibido.texto,
-            usuarioStore.clavePrivada
-        );
+    const mensajeDescifrado = descifrarMensaje(
+        recibido.texto,
+        usuarioStore.clavePrivada
+    );
 
-        if(!mensajeDescifrado){
-            console.error("No se ha podido descrifrar el mensaje");
-            return;
-        }
+    if (!mensajeDescifrado) {
+        console.error("No se ha podido descifrar el mensaje");
+        return;
+    }
 
-        recibido.texto = mensajeDescifrado;
+    const paqueteFirmado = JSON.parse(mensajeDescifrado);
 
-        mensajes.value.push(recibido);
-    });
+    const verificar = verificarFirma(
+        paqueteFirmado.mensaje,
+        paqueteFirmado.firma,
+        usuarioStore.clavePublicaOtroUsuario
+    );
+
+    if (!verificar) {
+        console.error("La firma del mensaje no es válida");
+        return;
+    }
+
+    const mensajeOriginal = JSON.parse(paqueteFirmado.mensaje);
+
+    mensajes.value.push(mensajeOriginal);
+});
 
     peer.on('error', (err) => {
         console.error('Error en el peer:', err);
@@ -93,8 +106,20 @@ function enviarMensaje() {
         })
     };
 
+    const mensajeJSON = JSON.stringify(nuevoMensaje);
+
+    const firma = firmarMensaje(
+        mensajeJSON,
+        usuarioStore.clavePrivada
+    );
+
+    const paqueteFirmado = {
+        mensaje: mensajeJSON,
+        firma: firma
+    };
+
     const textoCifrado = cifrarMensaje(
-        nuevoMensaje.texto,
+        JSON.stringify(paqueteFirmado),
         usuarioStore.clavePublicaOtroUsuario
     );
 

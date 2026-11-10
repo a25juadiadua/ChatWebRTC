@@ -41,8 +41,6 @@ socket.on("nombre:ok", () => {
     usuarioStore.clavePrivada = claves.clavePrivada;
     usuarioStore.clavePublica = claves.clavePublica;
     
-    console.log(usuarioStore.clavePublica);
-    console.log(usuarioStore.clavePrivada);
     socket.emit("clave:publica:enviar", claves.clavePublica);
 
 });
